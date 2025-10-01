@@ -142,7 +142,6 @@
         <div class="nav-links">
             <a href="#" class="active" data-page="home">Главная</a>
             <a href="#" data-page="news">Новости</a>
-            <a href="#" data-page="stocks">Популярные акции</a>
             <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
         </div>
     </nav>
@@ -192,27 +191,11 @@
 
     <div id="stocksPage" class="section" style="display:none;">
         <h2>Популярные акции</h2>
-        <div class="card" style="margin-bottom:1rem;">
-            <h3>Поиск акции</h3>
-            <div style="display:flex;gap:.5rem;margin-top:.5rem;">
-            <input id="stockSearchInput" type="text" placeholder="Введите тикер, например AAPL"
-                style="flex:1;padding:.6rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
-            <button onclick="searchStock()" 
-                style="padding:.6rem 1rem;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">
-                Найти
-            </button>
-            </div>
-            <div id="searchResult" style="margin-top:1rem;"></div>
-        </div>
-
-        <!-- 📈 Топ по росту -->
         <div class="card">
             <h3>Топ по росту</h3>
             <div class="stock-list" id="topGainers"></div>
         </div>
-
-        <!-- 📊 Топ по объёму -->
-        <div class="card" style="margin-top:1rem;">
+        <div class="card" style="margin-top: 2rem;">
             <h3>Топ по объёму</h3>
             <div class="stock-list" id="topVolume"></div>
         </div>
@@ -224,13 +207,7 @@
             <p>Чат с AI доступен здесь (интеграция через OpenRouter API).</p>
         </div>
     </div>
-
-            
 </div>
-
-</div>
-
-
 
 <script>
     const stocks = [
@@ -428,124 +405,8 @@ updateTrendingNews();
 // Автообновление каждые 60 минут
 setInterval(updateTrendingNews, 3600000);
 
-const FMP_API_KEY = "vmvuvLIJOyjTnYan3jElhHPuPG2gz150";
-
-async function searchStock() {
-  const input = document.getElementById('stockSearchInput');
-  const query = input.value.trim().toUpperCase();
-  const resultEl = document.getElementById('searchResult');
-
-  if (!query) {
-    resultEl.innerHTML = '<div class="muted">Введите тикер акции.</div>';
-    return;
-  }
-
-  resultEl.innerHTML = '<div class="muted">Загрузка...</div>';
-
-  try {
-    const url = `https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(query)}?apikey=${FMP_API_KEY}`;
-    const data = await safeFetch(url);
-
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      resultEl.innerHTML = '<div class="muted">Акция не найдена.</div>';
-      return;
-    }
-
-    const stock = data[0];
-    const changePercent = stock.changesPercentage || 0;
-
-    resultEl.innerHTML = `
-      <div class="stock-item">
-        <div>
-          <div class="stock-ticker">${stock.symbol}</div>
-          <div class="stock-name muted small">${stock.name || "Компания"}</div>
-        </div>
-        <div class="stock-price">
-          <div class="price">$${stock.price.toFixed(2)}</div>
-          <div class="change ${changePercent >= 0 ? 'positive' : 'negative'}">
-            ${changePercent >= 0 ? '↑' : '↓'} ${changePercent.toFixed(2)}%
-          </div>
-        </div>
-      </div>
-    `;
-  } catch (err) {
-    console.error("Ошибка поиска акции:", err);
-    resultEl.innerHTML = '<div class="muted">Ошибка при поиске. Попробуйте снова.</div>';
-  }
-}
-
-async function updateTopLists() {
-  const gainersEl = document.getElementById('topGainers');
-  const volumeEl = document.getElementById('topVolume');
-
-  gainersEl.innerHTML = '<div class="muted">Загрузка...</div>';
-  volumeEl.innerHTML = '<div class="muted">Загрузка...</div>';
-
-  try {
-    const [gainersData, activeData] = await Promise.all([
-      safeFetch(`https://financialmodelingprep.com/api/v3/stock_market/gainers?apikey=${FMP_API_KEY}`),
-      safeFetch(`https://financialmodelingprep.com/api/v3/stock_market/actives?apikey=${FMP_API_KEY}`)
-    ]);
-
-    // Топ по росту
-    if (Array.isArray(gainersData)) {
-      gainersEl.innerHTML = gainersData.slice(0, 5).map(s => `
-        <div class="stock-item" onclick="onTickerClick('${s.symbol}')">
-          <div>
-            <div class="stock-ticker">${s.symbol}</div>
-            <div class="stock-name muted small">${s.name || "Компания"}</div>
-          </div>
-          <div class="stock-price">
-            <div class="price">$${s.price.toFixed(2)}</div>
-            <div class="change positive">
-              ↑ ${s.change.toFixed(2)} (${s.changesPercentage.toFixed(2)}%)
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Топ по объёму
-    if (Array.isArray(activeData)) {
-      volumeEl.innerHTML = activeData.slice(0, 5).map(s => `
-        <div class="stock-item" onclick="onTickerClick('${s.symbol}')">
-          <div>
-            <div class="stock-ticker">${s.symbol}</div>
-            <div class="stock-name muted small">${s.name || "Компания"}</div>
-          </div>
-          <div class="stock-price">
-            <div class="price">$${s.price.toFixed(2)}</div>
-            <div class="muted small">Vol: ${s.volume.toLocaleString()}</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-  } catch (err) {
-    console.error("Ошибка загрузки топ-листов:", err);
-    gainersEl.innerHTML = '<div class="muted">Ошибка загрузки</div>';
-    volumeEl.innerHTML = '<div class="muted">Ошибка загрузки</div>';
-  }
-}
-
-// Первичная загрузка
-updateTopLists();
-// Автообновление раз в день (24ч)
-setInterval(updateTopLists, 86400000);
-
-async function safeFetch(url) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(res.statusText);
-    return await res.json();
-  } catch (err) {
-    console.error("safeFetch error:", err);
-    return null;
-  }
-}
 
 
 </script>
 </body>
 </html>
-
